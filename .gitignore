@@ -77,7 +77,7 @@ next-env.d.ts
 # (generated via ffmpeg HLS stream)
 # ========================
 public/hls/
-*.ts
+
 *.m3u8
 
 # ========================
