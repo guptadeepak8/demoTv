@@ -147,48 +147,42 @@ export default function WatchPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-4 relative">
-            <h2 className="text-lg font-semibold mb-3">📺 Mixed Stream</h2>
+        <div className="flex justify-center">
+  <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-4 relative w-full max-w-3xl">
+    <h2 className="text-lg font-semibold mb-3">📺 Mixed Stream</h2>
 
-            {activeStreams.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[30rem] text-white/80 text-center">
-                <VideoOff className="h-16 w-16 text-white/60 mb-4 animate-pulse" />
-                <p className="text-lg font-medium">
-                  No one is streaming right now.
-                </p>
-                <p className="text-sm mt-1">
-                  Please wait or refresh the page shortly.
-                </p>
-              </div>
-            ) : (
-              activeStreams.map((stream, id) => (
-                <div key={id} className="relative">
-                  <video
-                    id={`video-${stream.id}`}
-                    autoPlay
-                    playsInline
-                    muted
-                    controls
-                    className="w-full h-[30rem] bg-black/30 rounded-lg border border-white/30 object-cover"
-                  />
+    {!activeStreams.length ? (
+      <div className="flex flex-col items-center justify-center h-[30rem] text-white/80 text-center">
+        <VideoOff className="h-16 w-16 text-white/60 mb-4 animate-pulse" />
+        <p className="text-lg font-medium">No one is streaming right now.</p>
+        <p className="text-sm mt-1">Please wait or refresh the page shortly.</p>
+      </div>
+    ) : (
+      <div className="relative">
+        <video
+          id={`video-${activeStreams[0].id}`}
+          autoPlay
+          playsInline
+          muted
+          controls
+          className="w-full h-[30rem] bg-black/30 rounded-lg border border-white/30 object-cover"
+        />
 
-                  <div className="absolute top-4 left-4">
-                    <span
-                      className={`px-3 py-1 text-xs rounded-full font-semibold ${
-                        connectionStatus === "Connected to server."
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                    >
-                      {connectionStatus}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        <div className="absolute top-4 left-4">
+          <span
+            className={`px-3 py-1 text-xs rounded-full font-semibold ${
+              connectionStatus === "Connected to server."
+                ? "bg-green-500"
+                : "bg-red-500"
+            }`}
+          >
+            {connectionStatus}
+          </span>
         </div>
+      </div>
+    )}
+  </div>
+</div>
       </div>
     </main>
   );
