@@ -1,20 +1,23 @@
 // src/app/watch/page.tsx
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import Hls from 'hls.js';
+import { useEffect, useState, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import Hls from "hls.js";
+import { Copy, VideoOff } from "lucide-react";
 
 // The HlsStream interface is updated to match the server's output
 interface HlsStream {
-  id: string; 
-  url: string; 
+  id: string;
+  url: string;
 }
 
 export default function WatchPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [activeStreams, setActiveStreams] = useState<HlsStream[]>([{}]);
-  const [connectionStatus, setConnectionStatus] = useState("Connecting to server...");
+  const [connectionStatus, setConnectionStatus] = useState(
+    "Connecting to server..."
+  );
 
   const hlsInstancesRef = useRef<Map<string, Hls>>(new Map());
 
@@ -55,7 +58,7 @@ export default function WatchPage() {
       console.log("📺 Watch client disconnected from server.");
       setConnectionStatus("Disconnected from server.");
       setActiveStreams([]);
-      hlsInstancesRef.current.forEach(hls => hls.destroy());
+      hlsInstancesRef.current.forEach((hls) => hls.destroy());
       hlsInstancesRef.current.clear();
     });
 
@@ -66,26 +69,39 @@ export default function WatchPage() {
 
     return () => {
       newSocket.disconnect();
-      hlsInstancesRef.current.forEach(hls => hls.destroy());
+      hlsInstancesRef.current.forEach((hls) => hls.destroy());
       hlsInstancesRef.current.clear();
     };
   }, []);
 
   useEffect(() => {
-    activeStreams.forEach(stream => {
-
-      const videoElement = document.getElementById(`video-${stream.id}`) as HTMLVideoElement;
-      if (videoElement && Hls.isSupported() && !hlsInstancesRef.current.has(stream.id)) {
+    activeStreams.forEach((stream) => {
+      const videoElement = document.getElementById(
+        `video-${stream.id}`
+      ) as HTMLVideoElement;
+      if (
+        videoElement &&
+        Hls.isSupported() &&
+        !hlsInstancesRef.current.has(stream.id)
+      ) {
         const hls = new Hls();
-        hls.loadSource(stream.url);
-        hls.attachMedia(videoElement);
+        if (stream?.url?.trim()) {
+          hls.loadSource(stream.url.trim());
+          hls.attachMedia(videoElement);
+        } else {
+          console.error("❌ stream.url is undefined or invalid:", stream);
+        }
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          videoElement.play().catch(e => console.error(`Error playing video for ${stream.id}:`, e));
+          videoElement
+            .play()
+            .catch((e) =>
+              console.error(`Error playing video for ${stream.id}:`, e)
+            );
         });
         hls.on(Hls.Events.ERROR, (event, data) => {
           console.error(`HLS.js error for ${stream.id}:`, event, data);
           if (data.fatal) {
-            switch(data.type) {
+            switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 console.error("Fatal network error, trying to recover...");
                 hls.recoverMediaError();
@@ -97,7 +113,9 @@ export default function WatchPage() {
               default:
                 hls.destroy();
                 hlsInstancesRef.current.delete(stream.id);
-                setActiveStreams(prev => prev.filter(s => s.id !== stream.id));
+                setActiveStreams((prev) =>
+                  prev.filter((s) => s.id !== stream.id)
+                );
                 break;
             }
           }
@@ -109,53 +127,69 @@ export default function WatchPage() {
   }, [activeStreams]);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Live Stream Watcher</h1>
-      
-      <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-        <p><strong>Connection Status:</strong> {connectionStatus}</p>
-        <p><strong>Active HLS Streams:</strong> {activeStreams.length}</p>
-      </div>
+    <main className="relative min-h-screen bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 text-white px-4 py-10">
+      <div className="absolute w-[30rem] h-[30rem] bg-white opacity-10 blur-[150px] rounded-full top-10 left-1/2 -translate-x-1/2 -z-10"></div>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between">
+          <h1 className="text-4xl font-extrabold text-center drop-shadow-lg">
+            Live Stream Viewer
+          </h1>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6 items-center">
+            <button
+              onClick={() =>
+                navigator.clipboard.writeText(window.location.href)
+              }
+              className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md transition-all duration-200"
+            >
+              <Copy size={18} />
+              Share Watch URL
+            </button>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activeStreams.length === 0 ? (
-          <p className="col-span-full text-center text-gray-500">
-            Waiting for a mixed live stream to become available...
-          </p>
-        ) : (
-          activeStreams.map(stream => (
-            // Use stream.id as the key
-            <div key={stream.id} className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="text-lg font-semibold mb-3">
-                🎉 Mixed Stream
-              </h2>
-              <video 
-                // Use stream.id to set a unique video element id
-                id={`video-${stream.id}`}
-                controls
-                autoPlay 
-                playsInline 
-                muted
-                className="w-full h-64 bg-gray-100 rounded border object-cover"
-              />
-              <p className="text-sm text-gray-600 mt-2">
-                (Combined video and audio from multiple users)
-              </p>
-            </div>
-          ))
-        )}
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-4 relative">
+            <h2 className="text-lg font-semibold mb-3">📺 Mixed Stream</h2>
 
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm">
-        <h3 className="font-semibold mb-2">📋 How to test:</h3>
-        <ul className="space-y-1 text-gray-700">
-          <li>• Ensure your Node.js MediaSoup server is running on localhost:4001.</li>
-          <li>• Open `/stream` in **two separate** browser tabs (e.g., User 1, User 2) and click "Join Room" in both.</li>
-          <li>• Open `/watch` in a separate browser tab (e.g., User 3).</li>
-          <li>• Once both User 1 and User 2 start streaming video and audio, you should see a **single mixed video feed** appear on the `/watch` page.</li>
-          <li>• If either User 1 or User 2 disconnects from `/stream`, the mixed feed should disappear from `/watch`.</li>
-        </ul>
+            {activeStreams.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[30rem] text-white/80 text-center">
+                <VideoOff className="h-16 w-16 text-white/60 mb-4 animate-pulse" />
+                <p className="text-lg font-medium">
+                  No one is streaming right now.
+                </p>
+                <p className="text-sm mt-1">
+                  Please wait or refresh the page shortly.
+                </p>
+              </div>
+            ) : (
+              activeStreams.map((stream, id) => (
+                <div key={id} className="relative">
+                  <video
+                    id={`video-${stream.id}`}
+                    autoPlay
+                    playsInline
+                    muted
+                    controls
+                    className="w-full h-[30rem] bg-black/30 rounded-lg border border-white/30 object-cover"
+                  />
+
+                  <div className="absolute top-4 left-4">
+                    <span
+                      className={`px-3 py-1 text-xs rounded-full font-semibold ${
+                        connectionStatus === "Connected to server."
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}
+                    >
+                      {connectionStatus}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
