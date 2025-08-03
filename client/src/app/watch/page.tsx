@@ -14,7 +14,7 @@ interface HlsStream {
 
 export default function WatchPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [activeStreams, setActiveStreams] = useState<HlsStream[]>([{}]);
+  const [activeStreams, setActiveStreams] = useState<HlsStream[]>([]);
   const [connectionStatus, setConnectionStatus] = useState(
     "Connecting to server..."
   );
@@ -29,7 +29,7 @@ export default function WatchPage() {
       setConnectionStatus("Connected to server.");
       setSocket(newSocket);
 
-      // Request existing HLS streams immediately upon connection
+      
       newSocket.emit("getHlsStreams", (streams: HlsStream[]) => {
         console.log("📺 Received initial HLS streams:", streams);
         setActiveStreams(streams);
@@ -38,16 +38,13 @@ export default function WatchPage() {
 
     newSocket.on("newHlsStream", (stream: HlsStream) => {
       console.log("📺 New HLS stream available:", stream);
-      // The server only sends a single, mixed stream. We just set it.
       setActiveStreams([stream]);
     });
 
-    // The hlsStreamRemoved event now receives an object with an 'id'
+
     newSocket.on("hlsStreamRemoved", ({ id }: { id: string }) => {
       console.log("📺 HLS stream removed:", id);
-      // Clear all streams since the single mixed stream was removed
       setActiveStreams([]);
-      // Clean up Hls.js instance
       if (hlsInstancesRef.current.has(id)) {
         hlsInstancesRef.current.get(id)?.destroy();
         hlsInstancesRef.current.delete(id);

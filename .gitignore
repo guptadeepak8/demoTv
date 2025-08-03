@@ -72,18 +72,15 @@ next-env.d.ts
 # ========================
 .vercel
 
-# ========================
-# 📺 HLS / FFmpeg Output
-# (generated via ffmpeg HLS stream)
-# ========================
-src/hls/*
+
+/server/src/hls/*
 
 # ========================
 # 🐳 Docker (optional)
 # ========================
 docker-compose.override.yml
 *.local.yml
-
+*.sdp
 # ========================
 # 🚀 GitHub Actions (optional)
 # ========================
