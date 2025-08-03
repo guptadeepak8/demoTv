@@ -76,9 +76,7 @@ next-env.d.ts
 # 📺 HLS / FFmpeg Output
 # (generated via ffmpeg HLS stream)
 # ========================
-public/hls/
-
-*.m3u8
+src/hls/*
 
 # ========================
 # 🐳 Docker (optional)
