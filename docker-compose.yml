@@ -1,0 +1,27 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  mediasoup-server:
+    build:
+      context: ./server # Assumes your server code is in a 'server' directory
+      dockerfile: Dockerfile # Refers to the Dockerfile in the 'server' directory
+    ports:
+      - "4001:4001" 
+    volumes:
+      # Optional: Mount a volume for HLS output if you want persistence
+      # - ./public/hls:/app/public/hls 
+      # For a demo, it's fine to let it be ephemeral (comment out the line above)
+      - ./server:/app # Mount your server code for easier development (optional)
+      - /app/node_modules # Prevent host node_modules from overwriting container's
+    environment:
+      # You can pass environment variables here if needed
+      NODE_ENV: production
+      MEDIASOUP_ANNOUNCED_IP: "127.0.0.1" 
+    restart: unless-stopped # Automatically restart if it crashes
+    # For debugging, you might want to uncomment these:
+    # logging:
+    #   driver: "json-file"
+    #   options:
+    #     max-size: "10m"
+    #     max-file: "5"

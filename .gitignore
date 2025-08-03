@@ -1,0 +1,92 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ========================
+# ⚙️ Core Node.js & Yarn
+# ========================
+/server/node_modules
+/client/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ========================
+# 📦 Package Managers
+# ========================
+# Optional: Ignore lockfiles (uncomment if not committing them)
+# pnpm-lock.yaml
+# yarn.lock
+# package-lock.json
+
+# ========================
+# 🧪 Testing
+# ========================
+/coverage
+
+# ========================
+# 🧱 Next.js + Build
+# ========================
+client/.next/
+server/dist/
+/out/
+/build
+
+# ========================
+# 🔐 Environment
+# ========================
+.env*
+.env.local
+.env.*.local
+
+# ========================
+# 🗃️ Miscellaneous
+# ========================
+.DS_Store
+*.pem
+*.tgz
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ========================
+# 🧠 TypeScript
+# ========================
+*.tsbuildinfo
+next-env.d.ts
+
+# ========================
+# 🧑‍💻 Editor/IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+
+# ========================
+# 🌐 Vercel
+# ========================
+.vercel
+
+# ========================
+# 📺 HLS / FFmpeg Output
+# (generated via ffmpeg HLS stream)
+# ========================
+public/hls/
+*.ts
+*.m3u8
+
+# ========================
+# 🐳 Docker (optional)
+# ========================
+docker-compose.override.yml
+*.local.yml
+
+# ========================
+# 🚀 GitHub Actions (optional)
+# ========================
+/.github/workflows/*.log
