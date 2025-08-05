@@ -10,6 +10,8 @@ import { handleConsume } from './consumer.controller';
 let worker: Worker<AppData>;
 let router: Router<AppData>;
 
+
+
 export default async function setupMediasoup(peers: Namespace) {
   worker = await createMediaWorker();
   router = await worker.createRouter({ mediaCodecs });

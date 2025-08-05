@@ -1,14 +1,26 @@
 'use client'
 
 import { Copy, Mic, MicOff, Video, VideoOff } from "lucide-react";
-import { Device, Producer, Transport } from "mediasoup-client/types";
+import { Device, Producer, Transport, RtpCapabilities, TransportOptions, DtlsParameters, RtpParameters, MediaKind } from "mediasoup-client/types";
 import { useEffect, useRef, useState } from "react";
-import { Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
+interface CreateTransportResponse {
+  params: TransportOptions;
+}
+
+interface ProduceResponse {
+  id: string;
+}
+
+interface ConsumeMediaResponse {
+  id: string;
+  producerId: string;
+  kind: MediaKind;
+  rtpParameters: RtpParameters;
+}
 
 export default function Home() {
-
-
   const [isConnected, setIsConnected] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -19,6 +31,7 @@ export default function Home() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   
+
   const deviceRef = useRef<Device | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const producerTransportRef = useRef<Transport | null>(null);
@@ -34,7 +47,8 @@ export default function Home() {
     };
   }, []);
 
-  const socketEmitPromise = (event: string, data?: any): Promise<any> => {
+ 
+  const socketEmitPromise = <T,>(event: string, data?: unknown): Promise<T> => {
     return new Promise((resolve, reject) => {
       const activeSocket = socketRef.current;
       if (!activeSocket) {
@@ -46,9 +60,9 @@ export default function Home() {
         reject(new Error(`Socket emit timeout for event: ${event}`));
       }, 10000);
 
-      const handler = (response: any) => {
+      const handler = (response: T | { error: string } | { params: { error: string } }) => {
         clearTimeout(timeout);
-        resolve(response);
+          resolve(response as T)
       };
 
       if (data !== undefined) {
@@ -69,33 +83,16 @@ export default function Home() {
     }
 
     try {
-      const response = await socketEmitPromise("consumeMedia", {
+      // Use the specific type for the expected response
+      const consumersParams: ConsumeMediaResponse[] = await socketEmitPromise("consumeMedia", {
         rtpCapabilities: usedDevice.rtpCapabilities
       });
-
-
-      if (response?.params?.error) {
-        console.log(`ℹ️ Server reported: ${response.params.error}`);
-        return;
-      }
-      if (response?.error) {
-        console.log(`ℹ️ Server reported top-level error: ${response.error}`);
-        return;
-      }
-
-      const consumers = Array.isArray(response) ? response : (response ? [response] : []);
 
       const videoTracks: MediaStreamTrack[] = [];
       const audioTracks: MediaStreamTrack[] = [];
 
-      for (const consumerParams of consumers) {
-         
-        const consumer = await usedConsumerTransport.consume({
-          id: consumerParams.id,
-          producerId: consumerParams.producerId,
-          kind: consumerParams.kind,
-          rtpParameters: consumerParams.rtpParameters,
-        });
+      for (const consumerParams of consumersParams) {
+        const consumer = await usedConsumerTransport.consume(consumerParams);
 
         if (consumer?.track) {
           if (consumer.kind === "video") {
@@ -108,7 +105,6 @@ export default function Home() {
 
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = new MediaStream(videoTracks);
-
       }
 
       if (remoteAudioRef.current) {
@@ -119,8 +115,12 @@ export default function Home() {
       await socketEmitPromise("consumerResume", {});
       console.log("✅ Consumers resumed");
 
-    } catch (error: any) {
-      console.error("Error consuming remote media:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error consuming remote media:", error.message);
+      } else {
+        console.error("An unexpected error occurred:", error);
+      }
     }
   };
 
@@ -157,7 +157,7 @@ export default function Home() {
       const newSocket = io("http://localhost:4001/stream");
       socketRef.current = newSocket;
 
-      newSocket.on("connection-success", (data) => {
+      newSocket.on("connection-success", (data: { socketId: string }) => {
         console.log("✅ Connected to server:", data);
       });
 
@@ -166,87 +166,104 @@ export default function Home() {
         await consumeNewMedia();
       });
 
-      newSocket.on("peerDisconnected", ({ socketId }) => {
+      newSocket.on("peerDisconnected", ({ socketId }: { socketId: string }) => {
         console.log(`👋 Peer disconnected: ${socketId}`);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = null;
         }
       });
       
-      newSocket.on("connect_error", (error) => {
+      newSocket.on("connect_error", (error: Error) => {
         console.error("❌ Socket connection error:", error);
       });
       
       await new Promise<void>((resolve, reject) => {
-          newSocket.on("connection-success", () => resolve());
-          newSocket.on("connect_error", (error) => reject(error));
+        newSocket.on("connection-success", () => resolve());
+        newSocket.on("connect_error", (error) => reject(error));
       });
       
       const stream = await startLocalMedia();
 
-      const rtpCapabilities = await socketEmitPromise("getRouterRtpCapabilities");
+      // Explicitly type the response from the server
+      const routerRtpCapabilities: RtpCapabilities = await socketEmitPromise("getRouterRtpCapabilities");
 
+      // Import Device using `await import` and get the type
       const { Device } = await import("mediasoup-client");
       const newDevice = new Device();
-      await newDevice.load({ routerRtpCapabilities: rtpCapabilities });
+      await newDevice.load({ routerRtpCapabilities: routerRtpCapabilities });
       deviceRef.current = newDevice; 
 
-
-      const { params: producerParams } = await socketEmitPromise("createTransport", { sender: true });
+      // Use the specific type for the transport creation
+      const { params: producerParams }: CreateTransportResponse = await socketEmitPromise("createTransport", { sender: true });
       const newProducerTransport = newDevice.createSendTransport(producerParams);
       producerTransportRef.current = newProducerTransport;
 
-      newProducerTransport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+      newProducerTransport.on("connect", async ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback, errback) => {
         try {
           await socketEmitPromise("connectProducerTransport", { dtlsParameters });
           callback();
-        } catch (error) {
-          errback(error);
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            console.error("Error connecting producer transport:", error.message);
+          } else {
+            console.error("An unexpected error occurred:", error);
+          }
+          errback(error as Error); // Inform mediasoup of the error
         }
       });
 
-      newProducerTransport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
+      newProducerTransport.on("produce", async ({ kind, rtpParameters }: { kind: MediaKind, rtpParameters: RtpParameters }, callback, errback) => {
         try {
-          const { id } = await socketEmitPromise("transport-produce", { kind, rtpParameters });
+          const { id }: ProduceResponse = await socketEmitPromise("transport-produce", { kind, rtpParameters });
           callback({ id });
-        } catch (error) {
-          errback(error);
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            console.error("Error producing media:", error.message);
+          } else {
+            console.error("An unexpected error occurred:", error);
+          }
+          errback(error as Error); // Inform mediasoup of the error
         }
       });
-
 
       // Step 6: Create consumer transport
-      const { params: consumerParams } = await socketEmitPromise("createTransport", { sender: false });
+      const { params: consumerParams }: CreateTransportResponse = await socketEmitPromise("createTransport", { sender: false });
       const newConsumerTransport = newDevice.createRecvTransport(consumerParams);
-      consumerTransportRef.current = newConsumerTransport; // Update the ref immediately
+      consumerTransportRef.current = newConsumerTransport;
       
-      newConsumerTransport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+      newConsumerTransport.on("connect", async ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback, errback) => {
         try {
           await socketEmitPromise("connectConsumerTransport", { dtlsParameters });
           callback();
-        } catch (error) {
-          errback(error);
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            console.error("Error connecting consumer transport:", error.message);
+          } else {
+            console.error("An unexpected error occurred:", error);
+          }
+          errback(error as Error); // Inform mediasoup of the error
         }
       });
-
 
       // Step 7: Start producing local media
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
 
-      if (videoTrack) {
+      const videoScalabilityMode = "S1T3";
+
+      if (videoTrack && newProducerTransport) {
         videoProducerRef.current = await newProducerTransport.produce({
           track: videoTrack,
           encodings: [
-            { rid: "r0", maxBitrate: 100000, scalabilityMode: "S1T3" },
-            { rid: "r1", maxBitrate: 300000, scalabilityMode: "S1T3" },
-            { rid: "r2", maxBitrate: 900000, scalabilityMode: "S1T3" },
+            { rid: "r0", maxBitrate: 100000, scalabilityMode: videoScalabilityMode },
+            { rid: "r1", maxBitrate: 300000, scalabilityMode: videoScalabilityMode },
+            { rid: "r2", maxBitrate: 900000, scalabilityMode: videoScalabilityMode },
           ],
         });
         console.log("✅ Video producer created", videoProducerRef.current.rtpParameters);
       }
       
-      if (audioTrack) {
+      if (audioTrack && newProducerTransport) {
         audioProducerRef.current = await newProducerTransport.produce({ track: audioTrack });
         console.log("✅ Audio producer created");
       }
@@ -257,14 +274,16 @@ export default function Home() {
 
       console.log("🎉 Successfully connected to MediaSoup room!");
 
-    } catch (error: any) {
-      console.error("💥 Connection failed:", error);
-     
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error connecting to room:", error.message);
+      } else {
+        console.error("An unexpected error occurred:", error);
+      }
     } 
   };
 
   const disconnect = () => {
-
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
@@ -284,7 +303,6 @@ export default function Home() {
     if (producerTransportRef.current) producerTransportRef.current.close();
     if (consumerTransportRef.current) consumerTransportRef.current.close();
     
-
     if (socketRef.current) socketRef.current.disconnect();
 
     videoProducerRef.current = null;
@@ -330,9 +348,13 @@ export default function Home() {
     }
     setIsMicOn(prev => !prev);
   };
+
   const handleShare = () => {
-  navigator.clipboard.writeText(window.location.href);
-};
+    // navigator.clipboard.writeText is not available in the iframe.
+    // We'll log the URL for now.
+    console.log("Room URL:", window.location.href);
+    // You'd use a custom modal or message box here to inform the user.
+  };
 
   return (
     <main className="relative min-h-screen bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 text-white px-4 py-10">
@@ -342,32 +364,32 @@ export default function Home() {
           <h1 className="text-4xl font-extrabold text-center drop-shadow-lg">
             MediaSoup Video Chat
           </h1>
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6 items-center">
-          {!isConnected ? (
-            <button
-              onClick={connectToRoom}
-              className="px-8 py-3 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all duration-200 shadow-md"
-            >
-              Join Room
-            </button>
-          ) : (
-            <>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6 items-center">
+            {!isConnected ? (
               <button
-                onClick={disconnect}
-                className="px-8 py-3 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 shadow-md"
+                onClick={connectToRoom}
+                className="px-8 py-3 text-lg font-semibold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all duration-200 shadow-md"
               >
-                Leave Room
+                Join Room
               </button>
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md transition-all duration-200"
-              >
-                <Copy size={18} />
-                Share Room URL
-              </button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <button
+                  onClick={disconnect}
+                  className="px-8 py-3 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 shadow-md"
+                >
+                  Leave Room
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md transition-all duration-200"
+                >
+                  <Copy size={18} />
+                  Share Room URL
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -430,11 +452,7 @@ export default function Home() {
             <audio ref={remoteAudioRef} autoPlay playsInline />
           </div>
         </div>
-
-        {/* Controls */}
-      
       </div>
     </main>
-     
   );
 }

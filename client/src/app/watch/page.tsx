@@ -6,7 +6,7 @@ import { io, Socket } from "socket.io-client";
 import Hls from "hls.js";
 import { Copy, VideoOff } from "lucide-react";
 
-// The HlsStream interface is updated to match the server's output
+
 interface HlsStream {
   id: string;
   url: string;
@@ -162,7 +162,7 @@ export default function WatchPage() {
           playsInline
           muted
           controls
-          className="w-full h-[30rem] bg-black/30 rounded-lg border border-white/30 object-cover"
+          className="w-full h-[30rem]  bg-black/30 rounded-lg border border-white/30 object-cover"
         />
 
         <div className="absolute top-4 left-4">
