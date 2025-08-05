@@ -64,7 +64,7 @@ export async function addProducerToMix(producer: Producer) {
   });
 
   if (transportInfos.length === 4) {
-    const hlsDir = path.join(__dirname, '../hls');
+    const hlsDir = path.join(__dirname, '../../public/hls');
     if (!fs.existsSync(hlsDir)) {
       fs.mkdirSync(hlsDir, { recursive: true });
     }
@@ -129,7 +129,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
   }
 
   const fullSdp = sessionHeader + mediaSections;
-  const sdpPath = path.join(__dirname, '../hls/combined.sdp');
+  const sdpPath = path.join(__dirname, '../../public/hls/input.sdp');
   fs.writeFileSync(sdpPath, fullSdp);
 
   const filter=`[0:v:0]scale=427:480[v0];[0:a:0]anull[a0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[a0][a1]amix=inputs=2[a]`
@@ -158,7 +158,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-hls_time', '2',
     '-hls_list_size', '5',
     '-hls_flags', 'delete_segments',
-    path.join(__dirname, '../hls/stream.m3u8'),
+    path.join(__dirname, '../../public/hls/stream.m3u8'),
   ];
 
   const ffmpeg = spawn('ffmpeg', ffmpegArgs);
@@ -172,6 +172,6 @@ async function createMixedOutput(infos: TransportInfo[]) {
 export const getActiveHlsStreams = () => {
   const isActive = fs.existsSync(HLS_PLAYLIST_PATH);
   return isActive
-    ? [{ id: 'stream', url: 'http://localhost:4001/hls/stream.m3u8' }]
+    ? [{ id: 'stream', url: 'http://localhost:4001/watch/stream.m3u8' }]
     : [];
 };

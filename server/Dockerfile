@@ -13,7 +13,7 @@ WORKDIR /app
 
 # Copy your application files (make sure to copy package.json first for better caching)
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 

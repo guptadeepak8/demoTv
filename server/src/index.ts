@@ -5,7 +5,6 @@ import path from "path";
 import cors from "cors";
 
 import { initializeSocketServer } from "./config/socket.config";
-import { getActiveHlsStreams } from "./controller/hls.controller";
 import setupMediasoup from "./controller/mediasoup.controller";
 
 const app = express();
@@ -19,7 +18,14 @@ const io: Server = new Server(server, {
   },
 });
 
-app.use("/hls", express.static(path.join(__dirname, "./hls")));
+app.use('/watch', (req, res, next) => {
+  if (req.url.endsWith('.m3u8')) {
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+  } else if (req.url.endsWith('.ts')) {
+    res.setHeader('Content-Type', 'video/MP2T');
+  }
+  next();
+}, express.static(path.join(__dirname, '../public/hls')));
 
 app.get("/", (req, res) => {
   res.send("Hello from server!");
@@ -27,27 +33,11 @@ app.get("/", (req, res) => {
 
 const { peers, watch } = initializeSocketServer(io);
 
+
 (async () => {
   try {
-   await setupMediasoup(peers);
-    watch.on("connection", (socket: Socket) => {
-      socket.on("getHlsStreams", (callback) => {
-        const activeStreams = getActiveHlsStreams();
-        callback(activeStreams);
-        console.log(`[Watch Socket] Sent active HLS streams to ${socket.id}:`);
-        if (activeStreams.length > 0) {
-          io.of("/watch").emit("streamAvailable", activeStreams);
-          console.log("[Server] Emitted streamAvailable to /watch");
-        }
-      });
-
-      socket.on("disconnect", () => {
-        console.log(
-          `[Watch Socket] Client disconnected from /watch namespace: ${socket.id}`
-        );
-      });
-    });
-
+    await setupMediasoup(peers);
+    
     const PORT = process.env.PORT || 4001;
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

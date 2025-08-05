@@ -73,7 +73,7 @@ next-env.d.ts
 .vercel
 
 
-/server/src/hls/*
+/server/public/*
 
 # ========================
 # 🐳 Docker (optional)
