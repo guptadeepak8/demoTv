@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
   res.send("Hello from server!");
 });
 
-const { peers, watch } = initializeSocketServer(io);
+const { peers } = initializeSocketServer(io);
 
 
 (async () => {

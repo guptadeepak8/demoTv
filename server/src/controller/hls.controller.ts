@@ -10,7 +10,7 @@ import {
 } from 'mediasoup/node/lib/types';
 
 let router: Router;
-const producers: Producer[] = [];
+let producers: Producer[] = [];
 
 const HLS_PLAYLIST_PATH = path.resolve(__dirname, '../hls/stream.m3u8');
 
@@ -164,8 +164,10 @@ async function createMixedOutput(infos: TransportInfo[]) {
   const ffmpeg = spawn('ffmpeg', ffmpegArgs);
   ffmpeg.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
   ffmpeg.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
-  ffmpeg.on('close', (code) =>
+  ffmpeg.on('close', (code) =>{
+    producers=[]
     console.log(`FFmpeg exited with code ${code}`)
+  }
   );
 }
 
