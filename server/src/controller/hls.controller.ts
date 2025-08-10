@@ -72,18 +72,11 @@ export async function addProducerToMix(producer: Producer) {
   }
 }
 
-function generateSdpMediaSection(
-  t: TransportInfo,
-  rtpPort: number,
-  rtcpPort: number
-): string {
+function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: number): string {
   const { rtpParameters } = t;
-  const codec: RtpCodecParameters = rtpParameters.codecs?.[0];
+  const codec = rtpParameters.codecs?.[0];
   const encoding = rtpParameters.encodings?.[0];
-
-  if (!codec || !encoding) {
-    throw new Error('Invalid RTP parameters: missing codec or encoding');
-  }
+  if (!codec || !encoding) throw new Error('Invalid RTP parameters');
 
   const pt = codec.payloadType;
   const ssrc = encoding.ssrc;
@@ -102,17 +95,20 @@ function generateSdpMediaSection(
 
   const mediaType = codec.mimeType.startsWith('audio') ? 'audio' : 'video';
 
-  const sdp =
+  return (
     `m=${mediaType} ${rtpPort} RTP/AVP ${pt}\r\n` +
     `c=IN IP4 127.0.0.1\r\n` +
     `a=rtcp:${rtcpPort}\r\n` +
     `a=recvonly\r\n` +
     `a=rtpmap:${pt} ${mimeType}/${clockRate}\r\n` +
     fmtpLine +
-    `a=ssrc:${ssrc} cname:mediasoup\r\n`;
-
-  return sdp;
+    `a=ssrc:${ssrc} cname:mediasoup\r\n` +
+    `a=ssrc:${ssrc} msid:mediasoup mediasoup\r\n` +
+    `a=ssrc:${ssrc} mslabel:mediasoup\r\n` +
+    `a=ssrc:${ssrc} label:${ssrc}\r\n`
+  );
 }
+
 
 
 async function createMixedOutput(infos: TransportInfo[]) {
@@ -132,7 +128,12 @@ async function createMixedOutput(infos: TransportInfo[]) {
   const sdpPath = path.join(__dirname, '../../public/hls/input.sdp');
   fs.writeFileSync(sdpPath, fullSdp);
 
-  const filter=`[0:v:0]scale=427:480[v0];[0:a:0]anull[a0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[a0][a1]amix=inputs=2[a]`
+const filter = `
+[0:v:0]scale=427:480,setpts=PTS-STARTPTS[v0];
+[0:v:1]scale=427:480,setpts=PTS-STARTPTS[v1];
+[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];
+[0:a:0][0:a:1]amix=inputs=2[a]
+`;
 
   const ffmpegArgs = [
     '-protocol_whitelist', 'file,udp,rtp',
@@ -147,11 +148,10 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-filter_complex',filter,
     '-map', '[v]',
     '-map', '[a]',
-    '-s', '854x480',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-tune', 'zerolatency',
-    '-b:v', '1500k',
+    '-b:v', '3000k',
     '-c:a', 'aac',
     '-b:a', '128k',
     '-ac', '2',
@@ -165,7 +165,6 @@ async function createMixedOutput(infos: TransportInfo[]) {
   ffmpeg.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
   ffmpeg.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
   ffmpeg.on('close', (code) =>{
-    producers=[]
     console.log(`FFmpeg exited with code ${code}`)
   }
   );

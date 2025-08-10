@@ -22,6 +22,7 @@ export const mediasoupListenInfo: TransportListenInfo = {
     kind       : "video",
      mimeType: "video/VP8",
     clockRate  : 90000,
+    
   }
 ];
 

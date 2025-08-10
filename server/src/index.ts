@@ -3,6 +3,8 @@ import http from "http";
 import { Server, Socket } from "socket.io";
 import path from "path";
 import cors from "cors";
+import dotenv from 'dotenv';
+
 
 import { initializeSocketServer } from "./config/socket.config";
 import setupMediasoup from "./controller/mediasoup.controller";
@@ -10,7 +12,7 @@ import setupMediasoup from "./controller/mediasoup.controller";
 const app = express();
 const server = http.createServer(app);
 app.use(cors());
-
+// dotenv.config();
 const io: Server = new Server(server, {
   cors: {
     origin: "*",
@@ -31,12 +33,12 @@ app.get("/", (req, res) => {
   res.send("Hello from server!");
 });
 
-const { peers } = initializeSocketServer(io);
+const { stream } = initializeSocketServer(io);
 
 
 (async () => {
   try {
-    await setupMediasoup(peers);
+    await setupMediasoup(stream);
     
     const PORT = process.env.PORT || 4001;
     server.listen(PORT, () => {

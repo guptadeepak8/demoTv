@@ -127,10 +127,11 @@ export default function Home() {
   const startLocalMedia = async (): Promise<MediaStream> => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640, max: 640 },
-          height: { ideal: 360, max: 360 }
-        },
+       video: {
+  width: { ideal: 1920 },
+  height: { ideal: 1080 },
+  frameRate: { ideal: 30, max: 30 }
+},
         audio: true
       });
 
@@ -249,16 +250,19 @@ export default function Home() {
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
 
-      const videoScalabilityMode = "S1T3";
+  
 
       if (videoTrack && newProducerTransport) {
         videoProducerRef.current = await newProducerTransport.produce({
           track: videoTrack,
-          encodings: [
-            { rid: "r0", maxBitrate: 100000, scalabilityMode: videoScalabilityMode },
-            { rid: "r1", maxBitrate: 300000, scalabilityMode: videoScalabilityMode },
-            { rid: "r2", maxBitrate: 900000, scalabilityMode: videoScalabilityMode },
-          ],
+         encodings: [
+  { rid: "r0", maxBitrate: 300000, scalabilityMode: "S1T3" },
+  { rid: "r1", maxBitrate: 1200000, scalabilityMode: "S1T3" },
+  { rid: "r2", maxBitrate: 3000000, scalabilityMode: "S1T3" }, 
+],
+codecOptions: {
+  videoGoogleStartBitrate: 1500
+}
         });
         console.log("✅ Video producer created", videoProducerRef.current.rtpParameters);
       }
