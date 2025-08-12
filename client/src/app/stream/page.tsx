@@ -83,7 +83,7 @@ export default function Home() {
     }
 
     try {
-      // Use the specific type for the expected response
+      
       const consumersParams: ConsumeMediaResponse[] = await socketEmitPromise("consumeMedia", {
         rtpCapabilities: usedDevice.rtpCapabilities
       });
@@ -185,16 +185,15 @@ export default function Home() {
       
       const stream = await startLocalMedia();
 
-      // Explicitly type the response from the server
+      
       const routerRtpCapabilities: RtpCapabilities = await socketEmitPromise("getRouterRtpCapabilities");
 
-      // Import Device using `await import` and get the type
+      // Import Device using `await import` and get the type 
       const { Device } = await import("mediasoup-client");
       const newDevice = new Device();
       await newDevice.load({ routerRtpCapabilities: routerRtpCapabilities });
       deviceRef.current = newDevice; 
 
-      // Use the specific type for the transport creation
       const { params: producerParams }: CreateTransportResponse = await socketEmitPromise("createTransport", { sender: true });
       const newProducerTransport = newDevice.createSendTransport(producerParams);
       producerTransportRef.current = newProducerTransport;
@@ -209,7 +208,7 @@ export default function Home() {
           } else {
             console.error("An unexpected error occurred:", error);
           }
-          errback(error as Error); // Inform mediasoup of the error
+          errback(error as Error); 
         }
       });
 
@@ -223,7 +222,7 @@ export default function Home() {
           } else {
             console.error("An unexpected error occurred:", error);
           }
-          errback(error as Error); // Inform mediasoup of the error
+          errback(error as Error);
         }
       });
 
@@ -242,7 +241,7 @@ export default function Home() {
           } else {
             console.error("An unexpected error occurred:", error);
           }
-          errback(error as Error); // Inform mediasoup of the error
+          errback(error as Error); 
         }
       });
 
@@ -354,10 +353,8 @@ codecOptions: {
   };
 
   const handleShare = () => {
-    // navigator.clipboard.writeText is not available in the iframe.
-    // We'll log the URL for now.
     console.log("Room URL:", window.location.href);
-    // You'd use a custom modal or message box here to inform the user.
+    
   };
 
   return (
