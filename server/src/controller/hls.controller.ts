@@ -127,33 +127,26 @@ async function createMixedOutput(infos: TransportInfo[]) {
 
  const filter=`[0:v:0]scale=427:480[v0];[0:a:0]anull[a0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[a0][a1]amix=inputs=2[a]`
 
-  const ffmpegArgs = [
+  
+  const FfmpegArgs = [
+ 
     '-protocol_whitelist', 'file,udp,rtp',
     '-i', sdpPath,
     '-loglevel', 'debug',
-    '-probesize', '32M',
-    '-analyzeduration', '32M',
     '-x264opts', 'keyint=48:min-keyint=48:no-scenecut',
-    '-g', '48',
-    '-force_key_frames', 'expr:gte(t,n_forced)',
-    '-bsf:v', 'h264_mp4toannexb',
-    '-filter_complex',filter,
+    '-filter_complex', filter,
     '-map', '[v]',
     '-map', '[a]',
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-tune', 'zerolatency',
     '-b:v', '3000k',
+    '-c:v', 'libx264',
     '-c:a', 'aac',
-    '-b:a', '128k',
-    '-ac', '2',
     '-hls_time', '2',
     '-hls_list_size', '5',
     '-hls_flags', 'delete_segments',
     path.join(__dirname, '../../public/hls/stream.m3u8'),
-  ];
+];
 
-  const ffmpeg = spawn('ffmpeg', ffmpegArgs);
+  const ffmpeg = spawn('ffmpeg',FfmpegArgs);
   ffmpeg.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
   ffmpeg.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
   ffmpeg.on('close', (code) =>{

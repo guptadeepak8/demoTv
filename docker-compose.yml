@@ -1,4 +1,4 @@
-# docker-compose.yml
+
 version: '3.8'
 
 services:
@@ -12,14 +12,14 @@ services:
       - "40000-41000:40000-41000/tcp"
     volumes:
      
-      - ./server:/app # Mount your server code for easier development (optional)
-      - /app/node_modules # Prevent host node_modules from overwriting container's
+      - ./server:/app
+      - /app/node_modules 
     environment:
-      # You can pass environment variables here if needed
+     
       NODE_ENV: production
       MEDIASOUP_ANNOUNCED_IP: "host.docker.internal"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-    restart: unless-stopped # Automatically restart if it crashes
+    restart: unless-stopped 
     
