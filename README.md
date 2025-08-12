@@ -5,8 +5,8 @@ Before running the project, ensure you have the following installed:
 
 - **Node.js** (v16 or higher recommended)  
   [Download Node.js](https://nodejs.org/)
-- **npm** (comes with Node.js)
-- Git (optional, if cloning from a repository)
+- Git 
+- **ffmpeg** 
 
 You will also need to install dependencies for both the **client** and **server**.
 
