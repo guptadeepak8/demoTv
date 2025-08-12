@@ -102,10 +102,7 @@ function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: nu
     `a=recvonly\r\n` +
     `a=rtpmap:${pt} ${mimeType}/${clockRate}\r\n` +
     fmtpLine +
-    `a=ssrc:${ssrc} cname:mediasoup\r\n` +
-    `a=ssrc:${ssrc} msid:mediasoup mediasoup\r\n` +
-    `a=ssrc:${ssrc} mslabel:mediasoup\r\n` +
-    `a=ssrc:${ssrc} label:${ssrc}\r\n`
+    `a=ssrc:${ssrc} cname:mediasoup\r\n`
   );
 }
 
@@ -128,12 +125,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
   const sdpPath = path.join(__dirname, '../../public/hls/input.sdp');
   fs.writeFileSync(sdpPath, fullSdp);
 
-const filter = `
-[0:v:0]scale=427:480,setpts=PTS-STARTPTS[v0];
-[0:v:1]scale=427:480,setpts=PTS-STARTPTS[v1];
-[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];
-[0:a:0][0:a:1]amix=inputs=2[a]
-`;
+ const filter=`[0:v:0]scale=427:480[v0];[0:a:0]anull[a0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[a0][a1]amix=inputs=2[a]`
 
   const ffmpegArgs = [
     '-protocol_whitelist', 'file,udp,rtp',
