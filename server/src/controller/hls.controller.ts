@@ -6,8 +6,10 @@ import {
   Producer,
   RtpParameters,
   Router,
-  RtpCodecParameters,
 } from 'mediasoup/node/lib/types';
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 let router: Router;
 let producers: Producer[] = [];
@@ -36,13 +38,13 @@ export async function addProducerToMix(producer: Producer) {
   const basePort = 5004 + transportInfos.length * 2;
 
   const transport = await router.createPlainTransport<PlainTransportOptions>({
-    listenIp: '127.0.0.1',
+    listenIp: String(process.env.MEDIASOUP_LISTEN_IP),
     rtcpMux: false,
     comedia: false,
   });
 
   await transport.connect({
-    ip: '127.0.0.1',
+    ip: String(process.env.MEDIASOUP_LISTEN_IP),
     port: basePort,
     rtcpPort: basePort + 1,
   });
@@ -98,7 +100,7 @@ function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: nu
 
   return (
     `m=${mediaType} ${rtpPort} RTP/AVP ${pt}\r\n` +
-    `c=IN IP4 127.0.0.1\r\n` +
+    `c=IN IP4 ${process.env.MEDIASOUP_LISTEN_IP}\r\n` +
     `a=rtcp:${rtcpPort}\r\n` +
     `a=recvonly\r\n` +
     `a=rtpmap:${pt} ${mimeType}/${clockRate}\r\n` +
@@ -112,7 +114,7 @@ function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: nu
 async function createMixedOutput(infos: TransportInfo[]) {
   const sessionHeader =
     `v=0\r\n` +
-    `o=- 0 0 IN IP4 127.0.0.1\r\n` +
+    `o=- 0 0 IN IP4 ${process.env.MEDIASOUP_LISTEN_IP}\r\n` +
     `s=Mediasoup Mixed Stream\r\n` +
     `t=0 0\r\n`;
 

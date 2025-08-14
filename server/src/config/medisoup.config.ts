@@ -6,11 +6,11 @@ dotenv.config()
 
 export const mediasoupListenInfo: TransportListenInfo = {
   protocol:'udp',
-  ip: '127.0.0.1', 
+  ip: String(process.env.MEDIASOUP_LISTEN_IP), 
   announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, 
   portRange: {
-    min: 10000,
-    max: 60000,
+    min: Number(process.env.MEDIASOUP_MIN_PORT),
+    max: Number(process.env.MEDIASOUP_MAX_PORT),
   },
 };
 
