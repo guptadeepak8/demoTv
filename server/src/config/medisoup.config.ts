@@ -1,10 +1,13 @@
 
 import { RtpCapabilities, RtpCodecCapability, TransportListenInfo, Worker } from 'mediasoup/node/lib/types';
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 export const mediasoupListenInfo: TransportListenInfo = {
   protocol:'udp',
   ip: '127.0.0.1', 
-  announcedIp: '127.0.0.1', 
+  announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, 
   portRange: {
     min: 10000,
     max: 60000,

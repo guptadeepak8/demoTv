@@ -149,13 +149,11 @@ export default function Home() {
       throw error;
     }
   };
-
-
   const connectToRoom = async () => {
 
     try {
       const { io } = await import("socket.io-client");
-      const newSocket = io("http://localhost:4001/stream");
+      const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}/stream`);
       socketRef.current = newSocket;
 
       newSocket.on("connection-success", (data: { socketId: string }) => {

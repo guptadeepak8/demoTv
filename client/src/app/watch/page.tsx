@@ -10,7 +10,7 @@ export default function WatchPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const streamUrl = "http://localhost:4001/watch/stream.m3u8";
+    const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/watch/stream.m3u8`;
     const videoElement = videoRef.current;
 
     const cleanup = () => {

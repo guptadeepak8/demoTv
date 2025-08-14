@@ -3,16 +3,16 @@ import http from "http";
 import { Server, Socket } from "socket.io";
 import path from "path";
 import cors from "cors";
-import dotenv from 'dotenv';
-
+import expressStatusMonitor from 'express-status-monitor'
 
 import { initializeSocketServer } from "./config/socket.config";
 import setupMediasoup from "./controller/mediasoup.controller";
 
 const app = express();
 const server = http.createServer(app);
+app.use(expressStatusMonitor())
 app.use(cors());
-// dotenv.config();
+
 const io: Server = new Server(server, {
   cors: {
     origin: "*",
@@ -41,6 +41,8 @@ const { stream } = initializeSocketServer(io);
     await setupMediasoup(stream);
     
     const PORT = process.env.PORT || 4001;
+
+
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

@@ -12,6 +12,7 @@ import {
 let router: Router;
 let producers: Producer[] = [];
 
+let ffmpegProcess: ReturnType<typeof spawn> | null = null;
 const HLS_PLAYLIST_PATH = path.resolve(__dirname, '../hls/stream.m3u8');
 
 interface TransportInfo {
@@ -146,13 +147,57 @@ async function createMixedOutput(infos: TransportInfo[]) {
     path.join(__dirname, '../../public/hls/stream.m3u8'),
 ];
 
-  const ffmpeg = spawn('ffmpeg',FfmpegArgs);
-  ffmpeg.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
-  ffmpeg.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
-  ffmpeg.on('close', (code) =>{
+   ffmpegProcess = spawn('ffmpeg',FfmpegArgs);
+
+  if (ffmpegProcess.stdout) {
+  ffmpegProcess.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
+}
+if (ffmpegProcess.stderr) {
+  ffmpegProcess.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
+}
+  ffmpegProcess.on('close', (code) =>{
     console.log(`FFmpeg exited with code ${code}`)
   }
   );
+}
+
+export function stopHls() {
+
+  if (ffmpegProcess && !ffmpegProcess.killed) {
+    ffmpegProcess.kill('SIGKILL');
+    console.log('No FFmpeg process killed');
+  }
+  ffmpegProcess = null;
+
+
+  for (const info of transportInfos) {
+    try { info.consumer?.close(); } catch {}
+    try { info.transport?.close(); } catch {}
+  }
+  transportInfos.length = 0; 
+
+
+  producers.forEach(p => {
+    try { p.close(); } catch {}
+  });
+  producers.length = 0;
+
+
+
+  setTimeout(()=>{
+    clearhhls()
+  },3000)
+
+  
+}
+
+
+function clearhhls(){
+  const hlsDir = path.join(__dirname, '../../public/hls');
+  if (fs.existsSync(hlsDir)) {
+    fs.rmSync(hlsDir, { recursive: true, force: true });
+    console.log('🗑️ HLS folder deleted');
+  }
 }
 
 export const getActiveHlsStreams = () => {

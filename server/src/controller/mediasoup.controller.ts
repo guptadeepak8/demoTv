@@ -1,6 +1,6 @@
 import { Namespace, Socket } from 'socket.io';
 import { Worker, Router, WebRtcTransport, AppData, Producer, Consumer } from 'mediasoup/node/lib/types';
-import { initHlsManager } from './hls.controller';
+import { initHlsManager, stopHls } from './hls.controller';
 import { createMediaWorker } from '../common/worker';
 import { mediaCodecs } from '../config/medisoup.config';
 import { createWebRtcTransport } from './transport.controller';
@@ -81,6 +81,15 @@ export default async function setupMediasoup(peers: Namespace) {
       userTransports.producerTransport?.close();
       userTransports.consumerTransport?.close();
       transports.delete(socket.id);
+
+      const activeProducers = Array.from(producers.values()).some(pMap =>
+      Object.keys(pMap).length > 0
+    );
+
+    if (!activeProducers) {
+      stopHls()
+    }
+
     });
   });
 
