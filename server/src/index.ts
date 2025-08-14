@@ -40,10 +40,10 @@ const { stream } = initializeSocketServer(io);
   try {
     await setupMediasoup(stream);
     
-    const PORT = process.env.PORT || 4001;
+    const PORT = Number(process.env.PORT) || 4001;
 
 
-    server.listen(PORT, () => {
+    server.listen(PORT,'0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
