@@ -112,6 +112,10 @@ function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: nu
 
 
 async function createMixedOutput(infos: TransportInfo[]) {
+    const videoInfos = infos.filter(info => info.consumer.kind === 'video');
+  const audioInfos = infos.filter(info => info.consumer.kind === 'audio');
+  const sortedInfos = [...videoInfos, ...audioInfos];
+
   const sessionHeader =
     `v=0\r\n` +
     `o=- 0 0 IN IP4 ${process.env.MEDIASOUP_LISTEN_IP}\r\n` +
@@ -119,8 +123,8 @@ async function createMixedOutput(infos: TransportInfo[]) {
     `t=0 0\r\n`;
 
   let mediaSections = '';
-  for (let i = 0; i < infos.length; i++) {
-    const t = infos[i];
+  for (let i = 0; i < sortedInfos.length; i++) { // ✨ Corrected line ✨
+    const t = sortedInfos[i];
     mediaSections += generateSdpMediaSection(t, 5004 + i * 2, 5005 + i * 2);
   }
 
@@ -128,13 +132,18 @@ async function createMixedOutput(infos: TransportInfo[]) {
   const sdpPath = path.join(__dirname, '../../public/hls/input.sdp');
   fs.writeFileSync(sdpPath, fullSdp);
 
- const filter=`[0:v:0]scale=427:480[v0];[0:a:0]anull[a0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[a0][a1]amix=inputs=2[a]`
+ const filter = `[0:v:0]scale=427:480[v0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[0:a:0]anull[a0];[0:a:1]anull[a1];[a0][a1]amix=inputs=2[a]`;
 
   
   const FfmpegArgs = [
- 
     '-protocol_whitelist', 'file,udp,rtp',
+    '-probesize', '10M',
+    '-analyzeduration', '10M',
+    '-fflags', '+genpts',
     '-i', sdpPath,
+    // Add input-side buffering options
+    '-buffer_size', '128k', // Or a larger value like 256k, 512k, etc.
+    '-pkt_size', '1500', // A standard value for typical network MTU
     '-loglevel', 'debug',
     '-x264opts', 'keyint=48:min-keyint=48:no-scenecut',
     '-filter_complex', filter,
