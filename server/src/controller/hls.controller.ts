@@ -148,6 +148,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-analyzeduration', '5000000',
     '-i', sdpPath,
     '-loglevel', 'debug',
+    '-x264opts', 'keyint=48:min-keyint=48:no-scenecut',
     '-filter_complex', filterComplex,
     '-map', '[v]',
     '-map', '[a]',
@@ -172,9 +173,9 @@ async function createMixedOutput(infos: TransportInfo[]) {
 
 export function stopHls() {
 
-  if (ffmpegProcess && !ffmpegProcess.killed) {
-    ffmpegProcess.kill('SIGKILL');
-    console.log('No FFmpeg process killed');
+  if (ffmpegProcess) {
+    console.log('Stopping FFmpeg process');
+    ffmpegProcess.kill('SIGINT'); 
   }
   ffmpegProcess = null;
 
