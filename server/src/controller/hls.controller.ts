@@ -168,7 +168,10 @@ async function createMixedOutput(infos: TransportInfo[]) {
 
   ffmpegProcess.stdout?.on('data', data => console.log(`FFmpeg stdout: ${data}`));
   ffmpegProcess.stderr?.on('data', data => console.error(`FFmpeg stderr: ${data}`));
-  ffmpegProcess.on('close', code => console.log(`FFmpeg exited with code ${code}`));
+  ffmpegProcess.on('close', code => {
+    console.log(`FFmpeg exited with code ${code}`)
+     clearhhls()
+  });
 }
 
 export function stopHls() {
@@ -191,13 +194,6 @@ export function stopHls() {
     try { p.close(); } catch {}
   });
   producers.length = 0;
-
-
-
-  setTimeout(()=>{
-    clearhhls()
-  },3000)
-
   
 }
 
