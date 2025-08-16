@@ -131,7 +131,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
   const sdpPath = path.join(hlsDir, 'input.sdp');
   fs.writeFileSync(sdpPath, sessionHeader + mediaSections);
 
-
+ 
   const filterComplex = `
     [0:v:0]scale=427:480[v0];
     [0:v:1]scale=427:480[v1];
@@ -146,16 +146,16 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-max_delay', '500000',
     '-probesize', '5000000',
     '-analyzeduration', '5000000',
-    '-flush_packets', '0',
     '-i', sdpPath,
     '-loglevel', 'debug',
-    '-x264opts', 'keyint=48:min-keyint=48:no-scenecut',
     '-filter_complex', filterComplex,
     '-map', '[v]',
     '-map', '[a]',
-    '-b:v', '1000k',
+    '-b:v', '300k',
     '-c:v', 'libx264',
+    '-preset', 'veryfast',
     '-c:a', 'aac',
+     '-b:a', '96k',
     '-hls_time', '2',
     '-hls_list_size', '5',
     '-hls_flags', 'delete_segments',
