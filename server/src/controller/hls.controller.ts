@@ -67,10 +67,6 @@ export async function addProducerToMix(producer: Producer) {
   });
 
   if (transportInfos.length === 4) {
-    const hlsDir = path.join(__dirname, '../../public/hls');
-    if (!fs.existsSync(hlsDir)) {
-      fs.mkdirSync(hlsDir, { recursive: true });
-    }
     createMixedOutput(transportInfos);
   }
 }
@@ -112,64 +108,66 @@ function generateSdpMediaSection(t: TransportInfo, rtpPort: number, rtcpPort: nu
 
 
 async function createMixedOutput(infos: TransportInfo[]) {
-    const videoInfos = infos.filter(info => info.consumer.kind === 'video');
-  const audioInfos = infos.filter(info => info.consumer.kind === 'audio');
+
+  const hlsDir = path.join(__dirname, '../../public/hls');
+  if (!fs.existsSync(hlsDir)) fs.mkdirSync(hlsDir, { recursive: true });
+ 
+  const videoInfos = infos.filter(i => i.consumer.kind === 'video');
+  const audioInfos = infos.filter(i => i.consumer.kind === 'audio');
   const sortedInfos = [...videoInfos, ...audioInfos];
 
-  const sessionHeader =
+  const sessionHeader = 
     `v=0\r\n` +
     `o=- 0 0 IN IP4 ${process.env.MEDIASOUP_LISTEN_IP}\r\n` +
     `s=Mediasoup Mixed Stream\r\n` +
     `t=0 0\r\n`;
 
-  let mediaSections = '';
-  for (let i = 0; i < sortedInfos.length; i++) { // ✨ Corrected line ✨
-    const t = sortedInfos[i];
-    mediaSections += generateSdpMediaSection(t, 5004 + i * 2, 5005 + i * 2);
-  }
-
-  const fullSdp = sessionHeader + mediaSections;
-  const sdpPath = path.join(__dirname, '../../public/hls/input.sdp');
-  fs.writeFileSync(sdpPath, fullSdp);
-
- const filter = `[0:v:0]scale=427:480[v0];[0:v:1]scale=427:480[v1];[v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];[0:a:0]anull[a0];[0:a:1]anull[a1];[a0][a1]amix=inputs=2[a]`;
-
   
-  const FfmpegArgs = [
+  let mediaSections = '';
+  sortedInfos.forEach(t => {
+    mediaSections += generateSdpMediaSection(t, t.rtpPort, t.rtcpPort);
+  });
+
+  const sdpPath = path.join(hlsDir, 'input.sdp');
+  fs.writeFileSync(sdpPath, sessionHeader + mediaSections);
+
+
+  const filterComplex = `
+    [0:v:0]scale=427:480[v0];
+    [0:v:1]scale=427:480[v1];
+    [v0][v1]xstack=inputs=2:layout=0_0|w0_0[v];
+    [0:a:0]anull[a0];
+    [0:a:1]anull[a1];
+    [a0][a1]amix=inputs=2[a]
+  `.replace(/\s+/g, '');
+
+  const ffmpegArgs = [
     '-protocol_whitelist', 'file,udp,rtp',
-    '-probesize', '10M',
-    '-analyzeduration', '10M',
-    '-fflags', '+genpts',
+    '-max_delay', '500000',
+    '-probesize', '5000000',
+    '-analyzeduration', '5000000',
+    '-flush_packets', '0',
     '-i', sdpPath,
-    // Add input-side buffering options
-    '-buffer_size', '128k', // Or a larger value like 256k, 512k, etc.
-    '-pkt_size', '1500', // A standard value for typical network MTU
     '-loglevel', 'debug',
     '-x264opts', 'keyint=48:min-keyint=48:no-scenecut',
-    '-filter_complex', filter,
+    '-filter_complex', filterComplex,
     '-map', '[v]',
     '-map', '[a]',
-    '-b:v', '3000k',
+    '-b:v', '1000k',
     '-c:v', 'libx264',
     '-c:a', 'aac',
     '-hls_time', '2',
     '-hls_list_size', '5',
     '-hls_flags', 'delete_segments',
-    path.join(__dirname, '../../public/hls/stream.m3u8'),
-];
+    '-f', 'hls',
+    path.join(hlsDir, 'stream.m3u8')
+  ];
 
-   ffmpegProcess = spawn('ffmpeg',FfmpegArgs);
+  ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
 
-  if (ffmpegProcess.stdout) {
-  ffmpegProcess.stdout.on('data', (data) => console.log(`FFmpeg stdout: ${data}`));
-}
-if (ffmpegProcess.stderr) {
-  ffmpegProcess.stderr.on('data', (data) => console.error(`FFmpeg stderr: ${data}`));
-}
-  ffmpegProcess.on('close', (code) =>{
-    console.log(`FFmpeg exited with code ${code}`)
-  }
-  );
+  ffmpegProcess.stdout?.on('data', data => console.log(`FFmpeg stdout: ${data}`));
+  ffmpegProcess.stderr?.on('data', data => console.error(`FFmpeg stderr: ${data}`));
+  ffmpegProcess.on('close', code => console.log(`FFmpeg exited with code ${code}`));
 }
 
 export function stopHls() {
