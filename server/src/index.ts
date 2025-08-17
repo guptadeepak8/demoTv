@@ -5,11 +5,14 @@ import path from "path";
 import cors from "cors";
 import expressStatusMonitor from 'express-status-monitor'
 
+
 import { initializeSocketServer } from "./config/socket.config";
 import setupMediasoup from "./controller/mediasoup.controller";
 
+
 const app = express();
 const server = http.createServer(app);
+
 app.use(expressStatusMonitor())
 app.use(cors());
 

@@ -8,6 +8,7 @@ import {
   Router,
 } from 'mediasoup/node/lib/types';
 import dotenv from 'dotenv'
+import dgram from 'dgram';
 
 dotenv.config()
 
@@ -31,12 +32,23 @@ export async function initHlsManager(r: Router) {
   router = r;
 }
 
+function getFreeUdpPort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const socket = dgram.createSocket("udp4");
+    socket.bind(0, () => {
+      const port = (socket.address() as any).port;
+      socket.close(() => resolve(port));
+    });
+    socket.on("error", reject);
+  });
+}
+
 export async function addProducerToMix(producer: Producer) {
 
-
+  const rtpPort = await getFreeUdpPort();
+const rtcpPort = await getFreeUdpPort();
   producers.push(producer);
-  const basePort = 5004 + transportInfos.length * 2;
-
+  
   const transport = await router.createPlainTransport<PlainTransportOptions>({
     listenIp: String(process.env.MEDIASOUP_LISTEN_IP),
     rtcpMux: false,
@@ -45,8 +57,8 @@ export async function addProducerToMix(producer: Producer) {
 
   await transport.connect({
     ip: String(process.env.MEDIASOUP_LISTEN_IP),
-    port: basePort,
-    rtcpPort: basePort + 1,
+    port: rtpPort,
+    rtcpPort: rtcpPort,
   });
 
   const consumer = await transport.consume({
@@ -62,8 +74,8 @@ export async function addProducerToMix(producer: Producer) {
     transport,
     consumer,
     rtpParameters: consumer.rtpParameters,
-    rtpPort: basePort,
-    rtcpPort: basePort + 1,
+    rtpPort: rtpPort,
+    rtcpPort: rtcpPort,
   });
 
   if (transportInfos.length === 4) {
@@ -170,31 +182,41 @@ async function createMixedOutput(infos: TransportInfo[]) {
   ffmpegProcess.stderr?.on('data', data => console.error(`FFmpeg stderr: ${data}`));
   ffmpegProcess.on('close', code => {
     console.log(`FFmpeg exited with code ${code}`)
-     clearhhls()
   });
 }
 
 export function stopHls() {
+  if (!ffmpegProcess) return;
 
-  if (ffmpegProcess) {
-    console.log('Stopping FFmpeg process');
-    ffmpegProcess.kill('SIGINT'); 
-  }
-  ffmpegProcess = null;
+  console.log('Stopping FFmpeg process');
+  ffmpegProcess.once('close', () => {
+    console.log('✅ FFmpeg confirmed stopped');
+    clearhhls();
+    cleanupTransportsAndProducers();
+    ffmpegProcess = null;
+  });
 
 
+  ffmpegProcess.kill('SIGINT');
+
+
+  setTimeout(() => {
+    if (ffmpegProcess && !ffmpegProcess.killed) {
+      console.warn('⚠️ FFmpeg did not stop, forcing SIGKILL');
+      ffmpegProcess.kill('SIGKILL');
+    }
+  }, 3000);
+}
+
+function cleanupTransportsAndProducers() {
   for (const info of transportInfos) {
     try { info.consumer?.close(); } catch {}
     try { info.transport?.close(); } catch {}
   }
-  transportInfos.length = 0; 
+  transportInfos.length = 0;
 
-
-  producers.forEach(p => {
-    try { p.close(); } catch {}
-  });
+  producers.forEach(p => { try { p.close(); } catch {} });
   producers.length = 0;
-  
 }
 
 
