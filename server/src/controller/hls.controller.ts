@@ -198,14 +198,6 @@ export function stopHls() {
 
 
   ffmpegProcess.kill('SIGINT');
-
-
-  setTimeout(() => {
-    if (ffmpegProcess && !ffmpegProcess.killed) {
-      console.warn('⚠️ FFmpeg did not stop, forcing SIGKILL');
-      ffmpegProcess.kill('SIGKILL');
-    }
-  }, 3000);
 }
 
 function cleanupTransportsAndProducers() {
@@ -234,3 +226,14 @@ export const getActiveHlsStreams = () => {
     ? [{ id: 'stream', url: 'http://localhost:4001/watch/stream.m3u8' }]
     : [];
 };
+
+export function removeProducerFromMix(producerId: string) {
+  producers = producers.filter(p => p.id !== producerId);
+  cleanupTransportsAndProducers();
+  stopHls();
+
+  if (producers.length >= 2) {
+    // rebuild SDP with current producers and restart FFmpeg
+    createMixedOutput(transportInfos);
+  }
+}

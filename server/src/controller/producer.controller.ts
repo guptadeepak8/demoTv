@@ -1,6 +1,6 @@
 import { MediaKind, Producer, RtpCodecParameters, WebRtcTransport } from 'mediasoup/node/lib/types';
 import { Socket } from 'socket.io';
-import { addProducerToMix } from './hls.controller';
+import { addProducerToMix, removeProducerFromMix } from './hls.controller';
 
 export async function handleProduce(
   socket: Socket,
@@ -20,7 +20,10 @@ export async function handleProduce(
   addProducerToMix(producer);
 
   producer.on("transportclose", () => delete producers.get(socket.id)![kind]);
-  producer.on("@close", () => delete producers.get(socket.id)![kind]);
+  producer.on("@close", () => {
+     removeProducerFromMix(producer.id);
+     delete producers.get(socket.id)![kind]
+  });
 
   socket.broadcast.emit("newProducer", { socketId: socket.id, producerId: producer.id, kind });
   socket.broadcast.emit("newProducerAvailable");
