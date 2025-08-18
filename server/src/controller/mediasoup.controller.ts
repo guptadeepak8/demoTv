@@ -1,25 +1,20 @@
 import { Namespace, Socket } from 'socket.io';
 import { Worker, Router, WebRtcTransport, AppData, Producer, Consumer } from 'mediasoup/node/lib/types';
 import { initHlsManager, stopHls } from './hls.controller';
-import { createWorkers, getWorker } from '../common/worker';
+
 import { mediaCodecs } from '../config/medisoup.config';
 import { createWebRtcTransport } from './transport.controller';
 import { handleProduce } from './producer.controller';
 import { handleConsume } from './consumer.controller';
+import { createMediaWorker } from '../common/worker';
 
-let workers: Worker<AppData>[] = [];
+let worker: Worker<AppData>
 let router: Router<AppData>;
 
 
 
 export default async function setupMediasoup(peers: Namespace) {
-if (workers.length === 0) {
-    workers = await createWorkers();
-  }
-
-  // pick one worker using round robin
-  const worker = getWorker();
-
+  worker = await createMediaWorker();
  
   router = await worker.createRouter({ mediaCodecs });
   initHlsManager(router);
