@@ -153,7 +153,7 @@ export default function Home() {
 
     try {
       const { io } = await import("socket.io-client");
-      const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}/stream`);
+      const newSocket = io(`/stream`);
       socketRef.current = newSocket;
 
       newSocket.on("connection-success", (data: { socketId: string }) => {
