@@ -190,7 +190,7 @@ async function createMixedOutput(infos: TransportInfo[]) {
 export function stopHls() {
   console.log("Stopping HLS stream...");
   if (ffmpegProcess) {
-    ffmpegProcess.kill('SIGINT');
+    ffmpegProcess.kill('SIGTERM');
   } else {
     console.log("No FFmpeg process to stop.");
     clearhhls();
