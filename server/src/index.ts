@@ -12,8 +12,8 @@ import setupMediasoup from "./controller/mediasoup.controller";
 
 
 const app = express();
-const privateKey = fs.readFileSync(path.join(__dirname, 'key.pem'), 'utf8');
-const certificate = fs.readFileSync(path.join(__dirname, 'cert.pem'), 'utf8');
+const privateKey = fs.readFileSync(path.join(__dirname, '../key.pem'), 'utf8');
+const certificate = fs.readFileSync(path.join(__dirname, '../cert.pem'), 'utf8');
 const credentials = { key: privateKey, cert: certificate };
 
 // Use the https module to create the server
