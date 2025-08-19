@@ -83,7 +83,7 @@ export default async function setupMediasoup(peers: Namespace) {
       userTransports.producerTransport?.close();
       userTransports.consumerTransport?.close();
       transports.delete(socket.id);
-
+      stopHls()
     });
   });
 
