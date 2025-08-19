@@ -19,10 +19,14 @@ export async function handleProduce(
 
   addProducerToMix(producer);
 
- const cleanup = () => {
-   removeProducerFromMix(producer.id);
-  delete producers.get(socket.id)![kind];
-};
+const cleanup = () => {
+    // Defensive check: only remove if the producer still exists
+    const userProducers = producers.get(socket.id);
+    if (userProducers && userProducers[kind]) {
+      removeProducerFromMix(producer.id);
+      delete userProducers[kind];
+    }
+  };
 
 // Cleanup if producer's transport closes
 producer.on("transportclose", cleanup);
