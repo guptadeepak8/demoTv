@@ -4,14 +4,20 @@ import { Server, Socket } from "socket.io";
 import path from "path";
 import cors from "cors";
 import expressStatusMonitor from 'express-status-monitor'
-
+import fs from "fs";
+import https from "https"; 
 
 import { initializeSocketServer } from "./config/socket.config";
 import setupMediasoup from "./controller/mediasoup.controller";
 
 
 const app = express();
-const server = http.createServer(app);
+const privateKey = fs.readFileSync('key.pem', 'utf8');
+const certificate = fs.readFileSync('cert.pem', 'utf8');
+const credentials = { key: privateKey, cert: certificate };
+
+// Use the https module to create the server
+const server = https.createServer(credentials, app);
 
 app.use(expressStatusMonitor())
 app.use(cors());

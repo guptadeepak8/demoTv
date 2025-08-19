@@ -166,11 +166,12 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-map', '[a]',
     '-b:v', '1000k',
     '-c:v', 'libx264',
-    '-preset', 'medium',
+   '-preset', 'veryfast',
+    '-tune', 'zerolatency', // Add this to prioritize speed
     '-c:a', 'aac',
-     '-b:a', '96k',
-    '-hls_time', '2',
-    '-hls_list_size', '5',
+    '-b:a', '96k',
+    '-hls_time', '1', // Reduced to 1-second segments
+    '-hls_list_size', '3', // Reduced playlist to 3 segments
     '-hls_flags', 'delete_segments',
     '-f', 'hls',
     path.join(hlsDir, 'stream.m3u8')
