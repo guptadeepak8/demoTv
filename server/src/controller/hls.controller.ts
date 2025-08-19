@@ -164,9 +164,9 @@ async function createMixedOutput(infos: TransportInfo[]) {
     '-filter_complex', filterComplex,
     '-map', '[v]',
     '-map', '[a]',
-    '-b:v', '300k',
+    '-b:v', '1000k',
     '-c:v', 'libx264',
-    '-preset', 'veryfast',
+    '-preset', 'medium',
     '-c:a', 'aac',
      '-b:a', '96k',
     '-hls_time', '2',
@@ -189,8 +189,8 @@ async function createMixedOutput(infos: TransportInfo[]) {
 
 export function stopHls() {
   console.log("Stopping HLS stream...");
-  if (ffmpegProcess) {
-    ffmpegProcess.kill('SIGTERM');
+  if (ffmpegProcess && ffmpegProcess?.stdin) {
+    ffmpegProcess.stdin.end();
   } else {
     console.log("No FFmpeg process to stop.");
     clearhhls();
