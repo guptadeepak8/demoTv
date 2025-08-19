@@ -84,14 +84,6 @@ export default async function setupMediasoup(peers: Namespace) {
       userTransports.consumerTransport?.close();
       transports.delete(socket.id);
 
-      const activeProducers = Array.from(producers.values()).some(pMap =>
-      Object.keys(pMap).length > 0
-    );
-
-    if (!activeProducers) {
-      stopHls()
-    }
-
     });
   });
 
