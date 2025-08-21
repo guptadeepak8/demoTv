@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import path from "path";
 import cors from "cors";
 import expressStatusMonitor from 'express-status-monitor'
@@ -10,15 +10,20 @@ import https from "https";
 import { initializeSocketServer } from "./config/socket.config";
 import setupMediasoup from "./controller/mediasoup.controller";
 
-
 const app = express();
-const privateKey = fs.readFileSync(path.join(__dirname, '../key.pem'), 'utf8');
-const certificate = fs.readFileSync(path.join(__dirname, '../cert.pem'), 'utf8');
-const credentials = { key: privateKey, cert: certificate };
+let server: http.Server;
+if (process.env.NODE_ENV === "production") {
+  const privateKey = fs.readFileSync(path.join(__dirname, "../key.pem"), "utf8");
+  const certificate = fs.readFileSync(path.join(__dirname, "../cert.pem"), "utf8");
+  const credentials = { key: privateKey, cert: certificate };
 
-// Use the https module to create the server
-const server = https.createServer(credentials, app);
+  server = https.createServer(credentials, app);
+  console.log("Running in PRODUCTION mode with HTTPS");
+} else {
 
+  server = http.createServer(app);
+  console.log("Running in DEV mode with HTTP");
+}
 app.use(expressStatusMonitor())
 app.use(cors());
 
